@@ -1,21 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useActiveWallet } from "thirdweb/react";
-import { CARD_CONTRACT_ADDRESS, PACK_CONTRACT_ADDRESS } from "../const/addresses";
-import { defineChain, getContract, sendTransaction } from "thirdweb";
+import { CARD_CONTRACT_ADDRESS, PACK_CONTRACT_ADDRESS, MARKET_CONTRACT_ADDRESS } from "../const/addresses";
+import { defineChain, getContract, sendTransaction, sendAndConfirmTransaction } from "thirdweb";
 import Image from "next/image";
 import { client } from "../client";
 import { motion, AnimatePresence } from "framer-motion";
 import { openPack } from "thirdweb/extensions/pack";
 import { useActiveAccount } from "thirdweb/react";
-import { getOwnedNFTs as getOwnedERC1155NFTs } from "thirdweb/extensions/erc1155";
+import { getNFTs, getOwnedNFTs as getOwnedERC1155NFTs, isApprovedForAll, setApprovalForAll  } from "thirdweb/extensions/erc1155";
 import { getOwnedNFTs as getOwnedERC721NFTs } from "thirdweb/extensions/erc721";
 import { getOwnedERC721s } from "../getOwnedERC721s"; // Path to the custom extension
+import { createListing } from "thirdweb/extensions/marketplace";
+import { sepolia } from "thirdweb/chains";
+
 
 
 // Define a type for the NFT metadata structure
 type NFT = {
+  id: bigint
   metadata: {
     image: string;
     name: string;
@@ -35,17 +39,25 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedNft, setSelectedNft] = useState<NFT | null>(null);
   const [activeTab, setActiveTab] = useState("NFTs");
-
   const walletInfo = useActiveWallet();
-  const chain = defineChain(walletInfo?.getChain()?.id ?? 11155111);
+  const chain = defineChain(11155111);
   const walletAddress = walletInfo?.getAccount()?.address ?? "0x";
   const account = useActiveAccount();
+
+  console.log('Chain :', chain)
+
+  const [price, setPrice] = useState('');
+  const handlePriceChange = (e:any) => {
+    setPrice(e.target.value);
+    console.log(price)
+  };
+
 
   const cardsContract = getContract({
     address: CARD_CONTRACT_ADDRESS,
     chain,
     client,
-  });
+  }); 
 
   const packsContract = getContract({
     address: PACK_CONTRACT_ADDRESS,
@@ -53,6 +65,11 @@ export default function Profile() {
     client,
   });
 
+  const marketContract = getContract({
+    address: MARKET_CONTRACT_ADDRESS,
+    chain,
+    client,
+  });
   useEffect(() => {
     if (walletAddress !== "0x") {
       const fetchNfts = async () => {
@@ -75,6 +92,7 @@ export default function Profile() {
 
           setNfts(fetchedNFTs);
           setPacks(fetchedPacks);
+          console.log('Drops: ', fetchedPacks)
         } catch (error) {
           console.error("Error fetching NFTs:", error);
         } finally {
@@ -97,6 +115,93 @@ export default function Profile() {
     setSelectedNft(null);
   };
 
+  
+  const directListing = async (nft: NFT) => {
+    try {
+      // Ensure the NFT is selected
+      setSelectedNft(nft); 
+      console.log("Selected NFT:", nft);
+      console.log("Token Id:",  nft.id.toString());
+
+      // if (nfts.length === 0) {
+      //   console.error("No NFT provided for listing.");
+      //   return;
+      // }
+  
+      // const nft = nfts[0]; // Get the first NFT
+      // setSelectedNft(nft);
+      // console.log("Selected NFT:", nft);
+      // console.log("Token NFT:", nft.id);
+
+
+  
+      // Ensure account is defined
+      if (!account) {
+        console.error("Account is undefined. Please ensure the user is logged in.");
+        return;
+      }
+  
+      // Retrieve contract
+      const contract = getContract({
+        client, // Assuming you have a thirdweb client configured
+        chain, // Replace with your blockchain chain ID
+        address: "0xCCaaD0C9C3c0E1218aa3344531aDAC318d9484aB", // Use NFT contract address or default
+      });
+
+      console.log('account :', account)
+
+
+      
+      // Check if the Account is approved
+
+      const isApproved = await isApprovedForAll({
+        contract: cardsContract,
+        owner: account.address,
+        operator: MARKET_CONTRACT_ADDRESS,
+      });
+
+      console.log("Account is approved");
+
+      if (!isApproved) {
+        const transaction = setApprovalForAll({
+          contract: cardsContract,
+          operator: MARKET_CONTRACT_ADDRESS,
+          approved: true,
+        });
+
+        const approvalData = await sendAndConfirmTransaction({
+          transaction,
+          account,
+        });
+
+        console.log(`Approval Transaction hash: ${approvalData.transactionHash}`);
+      }
+    
+      // Create a listing
+      const transaction = await createListing({
+        contract, // Pass the contract object
+        assetContractAddress: "0xCe333e323fBF82D2173813002741050dfCE09005", // NFT contract address
+        tokenId: BigInt(nft.id), // Use NFT's token ID or default
+        pricePerToken: price, // Fixed price for now
+        currencyContractAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+
+      });
+
+  
+      console.log("Transaction created:", transaction);
+      // Send transaction
+      await sendTransaction({
+        transaction,
+        account, // Ensure account is defined
+      });
+  
+      console.log("Transaction sent successfully.");
+    } catch (error) {
+      console.error("Error in directListing:", error);
+    }
+  };
+  
+
   const openNewPack = async (packId: number) => {
     const transaction = await openPack({
       contract: packsContract,
@@ -115,6 +220,7 @@ export default function Profile() {
       account: account,
     });
   };
+
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center">
@@ -246,6 +352,20 @@ export default function Profile() {
                   </li>
                 ))}
               </ul>
+              
+
+              <input
+                style={{color:'black'}}
+                value={price}
+                onChange={handlePriceChange}
+                placeholder="Enter price"
+              />
+              <button
+                onClick={() => directListing(selectedNft)}
+                className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+              >
+                List On Marketplace
+              </button>
               <button
                 onClick={handleClose}
                 className="mt-4 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"

@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThirdwebProvider } from "thirdweb/react";
+import { ThirdwebProvider} from "thirdweb/react";
 import Navbar from "./components/NavBar";
 import Footer from "./components/Footer";
+
+
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ThirdwebProvider>
+        <ThirdwebProvider >
           <Navbar />
           <main>{children}</main>
           <Footer />

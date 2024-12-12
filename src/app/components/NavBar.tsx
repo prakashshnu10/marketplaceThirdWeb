@@ -1,14 +1,16 @@
 "use client";
 
 import { client } from "../client";
-import { useActiveWallet } from "thirdweb/react";
+import { useActiveWallet, useActiveWalletChain } from "thirdweb/react";
 import { ConnectButton } from "thirdweb/react";
 
 import Link from "next/link";
 import Image from "next/image";
+import { sepolia } from "thirdweb/chains";
 
 export default function Navbar() {
   const walletInfo = useActiveWallet();
+  
   return (
     <nav className="bg-background mb-0 p-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -64,6 +66,8 @@ export default function Navbar() {
                 label: "Connect Wallet",
                 className: "",
               }}
+              chain={sepolia}
+              
             />
           </div>
         </div>

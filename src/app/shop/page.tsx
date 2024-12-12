@@ -1,14 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion"; // Import framer-motion
-import { useActiveWallet } from "thirdweb/react";
+import { motion } from "framer-motion"; 
+import { useActiveWallet, useWalletBalance } from "thirdweb/react";
 import { getAllValidListings } from "thirdweb/extensions/marketplace";
 import { useActiveAccount } from "thirdweb/react";
 import { defineChain, getContract, sendTransaction, getUser, createThirdwebClient } from "thirdweb";
-// import { client } from "../client";
-import { MARKET_CONTRACT_ADDRESS } from "../const/addresses";
-import { buyFromListing } from "thirdweb/extensions/marketplace";
+import { CARD_CONTRACT_ADDRESS, MARKET_CONTRACT_ADDRESS, USDC_CONTRACT_ADDRESS } from "../const/addresses";
+import { buyFromListing, makeOffer } from "thirdweb/extensions/marketplace";
+import { approve } from "thirdweb/extensions/erc20";
+
 type Listing = {
   asset: {
     metadata: {
@@ -21,27 +22,33 @@ type Listing = {
   currencyValuePerToken: {
     displayValue: string;
   };
+  tokenId: number
 };
+
 export default function Shop() {
+  
   const [listings, setListings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const walletInfo = useActiveWallet();
   const account = useActiveAccount();
-  const chain = defineChain(walletInfo?.getChain()?.id ?? 11155111);
-  
+  const chain = defineChain(11155111);
+
   const client = createThirdwebClient({
     clientId: 'b217676c33d542c07d2a747ab2e20182',
     secretKey: 'Wx5OjlMwPkPDldOiPNQnV3ec2dtavWlE5_ZQAeIKPommOWYaC4A8UT1-Zr8r1AS_FnBoob_ETW6prI2D_eorMA'
   });
-  
+
+  const [price, setPrice] = useState('');
+  const handlePriceChange = (e:any) => {
+    setPrice(e.target.value);
+    console.log(price)
+  };
+
   const market = getContract({
     address: MARKET_CONTRACT_ADDRESS,
     chain,
     client,
   });
-  
-
-
 
   useEffect(() => {
     const fetchValidListings = async () => {
@@ -51,13 +58,14 @@ export default function Shop() {
           walletAddress: account?.address || "",
         });
 
-        console.log('user_wallet: ', user)
+        console.log('user_wallet: ', user);
+
         const lists = await getAllValidListings({
           contract: market,
-          start: 0,
-          count: BigInt(10),
+          start: 0
         });
-        console.log(lists)
+        console.log(lists);
+        console.log('Listing : ', lists[7].tokenId)
         setListings(lists);
       } catch (error) {
         console.error("Error fetching valid listings:", error);
@@ -67,25 +75,117 @@ export default function Shop() {
     };
     fetchValidListings();
   }, [market]);
+
   const formatIpfsUrl = (url: string) => {
     return "ipfs://QmVsefCnYWEcEm2v36ZLF6LWQ4as5BHpLbUbpM6671p1f7/10.jpg";
   };
-  const buyNFtT = async (listingId: number) => {
-    const transaction = await buyFromListing({
-      contract: market,
-      listingId: BigInt(listingId),
-      quantity: 1n,
-      recipient: account?.address || "",
-    });
+
+  const approveUSDC = async () => {
     if (!account) {
       console.error("Account not found");
       return;
     }
-    await sendTransaction({
-      transaction,
-      account: account,
+  
+    const usdcContract = getContract({
+      address: USDC_CONTRACT_ADDRESS,
+      chain,
+      client,
     });
+  
+    try {
+      console.log("Approving USDC for marketplace...");
+      const amountToApprove = "2000000000000000000"; // Example: 1 USDC (18 decimals)
+
+      const transaction = await approve({
+        contract: usdcContract,
+        spender: MARKET_CONTRACT_ADDRESS,
+        amount: amountToApprove,
+      });
+
+      await sendTransaction({ transaction, account });
+      console.log("Approved amount for marketplace");
+    } catch (error) {
+      console.error("Error during USDC approval:", error);
+    }
   };
+
+  const makeOfferNFT = async (listingId: number) => {
+
+    try{
+      if (!account) {
+        console.error("Account not found");
+        return;
+      }
+  
+      const transaction = makeOffer({
+        contract:market,
+        assetContractAddress: CARD_CONTRACT_ADDRESS,
+        tokenId: BigInt(listingId),
+        currencyContractAddress:
+          "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+        offerExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        totalOffer: price,
+      });
+  
+      const gasPrice = BigInt(34000000000);
+  
+  
+      // Prepare the transaction and add the custom gas price
+      const tx = await sendTransaction({
+        transaction: {
+          ...transaction, // Spread existing transaction properties
+          gasPrice: gasPrice, // Set the custom gas price (in Wei)
+        },
+        account,
+      });
+
+      console.log('Buying NFT Process Completed --->');
+
+    } catch(error){
+      console.error("Error during NFT purchase:", error);
+    }
+
+  }
+
+  const buyNFT = async (listingId: number) => {
+    console.log('Buying NFT Process Started --->');
+
+    if (!account) {
+      console.error("Account not found");
+      return;
+    }
+
+    try {
+      // Ensure the user has approved USDC for spending
+      await approveUSDC();
+
+      const transaction = await buyFromListing({
+        contract: market,
+        listingId: BigInt(listingId),
+        quantity: 1n,
+        recipient: account?.address || "",
+
+      });
+
+      const gasPrice = BigInt(34000000000);
+
+
+      // Prepare the transaction and add the custom gas price
+      const tx = await sendTransaction({
+        transaction: {
+          ...transaction, // Spread existing transaction properties
+          gasPrice: gasPrice, // Set the custom gas price (in Wei)
+        },
+        account,
+      });
+
+      console.log('Buying NFT Process Completed --->');
+    } catch (error) {
+      
+      console.error("Error during NFT purchase:", error);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen">
       <h1 className="text-3xl font-bold mb-8 text-center">
@@ -112,7 +212,7 @@ export default function Shop() {
             />
           </motion.div>
           <h1 className="text-3xl font-bold mb-8 text-center">
-            Loading Lists ...
+            Loading Listings ...
           </h1>
         </div>
       ) : (
@@ -142,19 +242,35 @@ export default function Shop() {
                     Amount left: {listing.quantity.toString()}
                   </span>
                   <span className="font-bold text-green-600">
-                    {listing.currencyValuePerToken.displayValue} ETH
+                    {listing.currencyValuePerToken.displayValue} USDC
                   </span>
                 </div>
                 {!account ? (
                   <p>Please Connect Wallet</p>
                 ) : (
+<>
+                  
                   <button
-                    onClick={buyNFtT.bind(null, listing.id)}
+                    onClick={buyNFT.bind(null, listing.id)}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-200"
                   >
                     Buy Now
                   </button>
+
+                    
+                    
+                    
+                    
+                    
+                    </>
+
+                    
+
+
+
                 )}
+
+                
               </div>
             </motion.div>
           ))}

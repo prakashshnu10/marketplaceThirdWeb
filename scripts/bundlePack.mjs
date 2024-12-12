@@ -90,52 +90,52 @@ const main = async () => {
       recipient: account.address,
       tokenOwner: account.address,
       packMetadata: {
-        name: "Tradible Drop",
-        image:
-          "https://d391b93f5f62d9c15f67142e43841acc.ipfscdn.io/ipfs/QmVsefCnYWEcEm2v36ZLF6LWQ4as5BHpLbUbpM6671p1f7/10.jpg",
-        description: "Tradible Drop contains 6 Pack",
-
+        "collection_name": "Slab Drops",
+        "name": "drop#3",
+        "description": "Tradible Huge Hits #3",
+        "title": "1996 Topps Kobe Bryant Base 138",
+        "sub_description": "Legendary Grails & More, 10% Chance of Rare or Higher",
+        "image": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/7368e4e7f83d1b7f502d704c9b821b68.png",
+        "video": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/LoopPreview.mp4",
+        "external_url": "https://tradible.io/slab-drops/drop#3",
+        "start_date": "",
+        "end_date": "",
+        "price": "50",
+        "currency": "USD",
+        "number_of_items": "100",
+        "drop_contract_address": "",
+        "status": "",
+        "drop_details": "This premium drop is for those grail-hunting collectors looking to add some legendary heat to their collections. Buyback offers are activated for this drop. That means that every card from this drop will receive a 70% FMV offer shortly after reveal. Shortly after the drop, you can rip and reveal your pack to see what you got. To hodl, trade, or redeem from the vault. It's all on-chain to prove 100% fairness and randomness in distribution.",
+        "assets": [
+          {
+            "token_id": "28",
+            "type": "Legendary",
+            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
+          },
+          {
+            "token_id": "29",
+            "type": "Legendary",
+            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
+          },
+        ]
       },
+      
 
       openStartTimestamp: new Date(),
 
       erc721Rewards: [
         {
           contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(4),
+          tokenId: BigInt(28),
           quantityPerReward: 1,
           totalRewards: 1,
         },
         {
           contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(5),
+          tokenId: BigInt(29),
           quantityPerReward: 1,
           totalRewards: 1,
         },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(6),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(7),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(8),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(9),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        }
       ],
 
       amountDistributedPerOpen: BigInt(1),
