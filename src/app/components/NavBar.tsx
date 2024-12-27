@@ -6,7 +6,7 @@ import { ConnectButton } from "thirdweb/react";
 
 import Link from "next/link";
 import Image from "next/image";
-import { sepolia } from "thirdweb/chains";
+import { baseSepolia, sepolia } from "thirdweb/chains";
 
 export default function Navbar() {
   const walletInfo = useActiveWallet();
@@ -66,7 +66,7 @@ export default function Navbar() {
                 label: "Connect Wallet",
                 className: "",
               }}
-              chain={sepolia}
+              chain={baseSepolia}
               
             />
           </div>

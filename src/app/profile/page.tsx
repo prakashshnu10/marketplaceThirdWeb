@@ -2,24 +2,36 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useActiveWallet } from "thirdweb/react";
-import { CARD_CONTRACT_ADDRESS, PACK_CONTRACT_ADDRESS, MARKET_CONTRACT_ADDRESS } from "../const/addresses";
-import { defineChain, getContract, sendTransaction, sendAndConfirmTransaction } from "thirdweb";
+import {
+  CARD_CONTRACT_ADDRESS,
+  PACK_CONTRACT_ADDRESS,
+  MARKET_CONTRACT_ADDRESS,
+} from "../const/addresses";
+import {
+  defineChain,
+  getContract,
+  sendTransaction,
+  sendAndConfirmTransaction,
+} from "thirdweb";
 import Image from "next/image";
 import { client } from "../client";
 import { motion, AnimatePresence } from "framer-motion";
 import { openPack } from "thirdweb/extensions/pack";
 import { useActiveAccount } from "thirdweb/react";
-import { getNFTs, getOwnedNFTs as getOwnedERC1155NFTs, isApprovedForAll, setApprovalForAll  } from "thirdweb/extensions/erc1155";
-import { getOwnedNFTs as getOwnedERC721NFTs } from "thirdweb/extensions/erc721";
+import {
+  getNFTs,
+  getOwnedNFTs as getOwnedERC1155NFTs,
+  isApprovedForAll,
+  setApprovalForAll,
+} from "thirdweb/extensions/erc1155";
+import { getOwnedNFTs as getOwnedERC721NFTs, burn, transferFrom } from "thirdweb/extensions/erc721";
 import { getOwnedERC721s } from "../getOwnedERC721s"; // Path to the custom extension
-import { createListing } from "thirdweb/extensions/marketplace";
+import { acceptOffer, createListing, getAllOffers, cancelListing, cancelOffer } from "thirdweb/extensions/marketplace";
 import { sepolia } from "thirdweb/chains";
-
-
 
 // Define a type for the NFT metadata structure
 type NFT = {
-  id: bigint
+  id: bigint;
   metadata: {
     image: string;
     name: string;
@@ -35,29 +47,38 @@ type NFT = {
 
 export default function Profile() {
   const [nfts, setNfts] = useState<any[]>([]);
+  const [myNftIds, setMyNftIds] = useState<any[]>([]);
   const [packs, setPacks] = useState<any[]>([]);
+  const [offersReceived, setOffersReceived] = useState<any[]>([]);
+  const [offersMade, setOffersMade] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedNft, setSelectedNft] = useState<NFT | null>(null);
   const [activeTab, setActiveTab] = useState("NFTs");
   const walletInfo = useActiveWallet();
-  const chain = defineChain(11155111);
+  // const chain = defineChain(11155111);
   const walletAddress = walletInfo?.getAccount()?.address ?? "0x";
   const account = useActiveAccount();
+  const chain = defineChain(84532); // base
 
-  console.log('Chain :', chain)
+  console.log("Chain :",nfts, myNftIds, offersMade);
 
-  const [price, setPrice] = useState('');
-  const handlePriceChange = (e:any) => {
+  const [price, setPrice] = useState("");
+  const handlePriceChange = (e: any) => {
     setPrice(e.target.value);
-    console.log(price)
+    console.log(price);
   };
 
+  const [to, setTo] = useState("");
+  const handleTo = (e: any) => {
+    setTo(e.target.value);
+    console.log(to);
+  };
 
   const cardsContract = getContract({
     address: CARD_CONTRACT_ADDRESS,
     chain,
     client,
-  }); 
+  });
 
   const packsContract = getContract({
     address: PACK_CONTRACT_ADDRESS,
@@ -70,6 +91,8 @@ export default function Profile() {
     chain,
     client,
   });
+
+
   useEffect(() => {
     if (walletAddress !== "0x") {
       const fetchNfts = async () => {
@@ -80,7 +103,7 @@ export default function Profile() {
             owner: walletAddress,
           });
 
-          console.log(fetchedNFTs)
+          console.log(fetchedNFTs);
 
           // Fetch ERC1155 NFTs (Packs)
           const fetchedPacks = await getOwnedERC1155NFTs({
@@ -90,9 +113,25 @@ export default function Profile() {
             address: walletAddress,
           });
 
+          console.log('fetchedPacks ::: ', fetchedPacks)
+
+
+          const offers = await getAllOffers({
+            contract: marketContract,
+          });
+          
+          console.log('offer =>', offers)
+
+          const ids = fetchedNFTs.map((nft) => nft.id);
+
+          const filteredOffers = offers.filter((item) => ids.includes(item.tokenId));
+
+          setMyNftIds(ids);
           setNfts(fetchedNFTs);
           setPacks(fetchedPacks);
-          console.log('Drops: ', fetchedPacks)
+          setOffersReceived(filteredOffers);
+          setOffersMade(offers);
+          console.log("Drops: ", fetchedPacks);
         } catch (error) {
           console.error("Error fetching NFTs:", error);
         } finally {
@@ -115,32 +154,33 @@ export default function Profile() {
     setSelectedNft(null);
   };
 
-  
+
+
   const directListing = async (nft: NFT) => {
     try {
       // Ensure the NFT is selected
-      setSelectedNft(nft); 
+      setSelectedNft(nft);
       console.log("Selected NFT:", nft);
-      console.log("Token Id:",  nft.id.toString());
+      console.log("Token Id:", nft.id.toString());
 
       // if (nfts.length === 0) {
       //   console.error("No NFT provided for listing.");
       //   return;
       // }
-  
+
       // const nft = nfts[0]; // Get the first NFT
       // setSelectedNft(nft);
       // console.log("Selected NFT:", nft);
       // console.log("Token NFT:", nft.id);
 
-
-  
       // Ensure account is defined
       if (!account) {
-        console.error("Account is undefined. Please ensure the user is logged in.");
+        console.error(
+          "Account is undefined. Please ensure the user is logged in."
+        );
         return;
       }
-  
+
       // Retrieve contract
       const contract = getContract({
         client, // Assuming you have a thirdweb client configured
@@ -148,10 +188,8 @@ export default function Profile() {
         address: "0xCCaaD0C9C3c0E1218aa3344531aDAC318d9484aB", // Use NFT contract address or default
       });
 
-      console.log('account :', account)
+      console.log("account :", account);
 
-
-      
       // Check if the Account is approved
 
       const isApproved = await isApprovedForAll({
@@ -174,33 +212,129 @@ export default function Profile() {
           account,
         });
 
-        console.log(`Approval Transaction hash: ${approvalData.transactionHash}`);
+        console.log(
+          `Approval Transaction hash: ${approvalData.transactionHash}`
+        );
       }
-    
+
       // Create a listing
       const transaction = await createListing({
         contract, // Pass the contract object
         assetContractAddress: "0xCe333e323fBF82D2173813002741050dfCE09005", // NFT contract address
         tokenId: BigInt(nft.id), // Use NFT's token ID or default
         pricePerToken: price, // Fixed price for now
-        currencyContractAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
-
+        currencyContractAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
       });
 
-  
       console.log("Transaction created:", transaction);
       // Send transaction
       await sendTransaction({
         transaction,
         account, // Ensure account is defined
       });
-  
+
       console.log("Transaction sent successfully.");
     } catch (error) {
       console.error("Error in directListing:", error);
     }
   };
+  const handleAcceptOffer = async (offerId: number) => {
+    console.log("inside accept offer")
+    try{
+
+      if (!account) {
+        console.error("Account not found. Ensure the user is logged in.");
+        return;
+      }
+
+      const transaction = await acceptOffer({
+        contract: marketContract,
+        offerId: BigInt(offerId),
+      });
+       
+      await sendTransaction({
+        transaction,
+        account,
+      });
+
+
+    }catch(error){
+          console.error("Error during NFT transfer:", error);
+    }
+  }
+
+  const handleCancelListing = async (nft: NFT) => {
+    console.log("inside concel listing")
+    try{
+
+      if (!account) {
+        console.error("Account not found. Ensure the user is logged in.");
+        return;
+      }
+
+      const transaction = cancelListing({
+        contract:marketContract,
+        listingId: BigInt(44)
+       });
+        
+       // Send the transaction
+       await sendTransaction({ transaction, account });
+
+    }catch(error){
+          console.error("Error during cancel listing:", error);
+    }
+  }
+
+
+  // const handleCancelOffer = async (offerId:number) => {
+  //   console.log("inside concel offer")
+  //   try{
+
+  //     if (!account) {
+  //       console.error("Account not found. Ensure the user is logged in.");
+  //       return;
+  //     }
+
+  //     const transaction = cancelOffer({
+  //       contract:marketContract,
+  //       offerId: BigInt(offerId)
+  //      });
+        
+  //      // Send the transaction
+  //      await sendTransaction({ transaction, account });
+
+  //   }catch(error){
+  //         console.error("Error during cancel offer:", error);
+  //   }
+  // }
+
+
+
+  const handleCancelOffer = async (offerId: number) => {
+    console.log("Inside cancel offer");
   
+    try {
+      if (!account) {
+        console.error("Account not found. Ensure the user is logged in.");
+        return;
+      }
+  
+      // Await cancelOffer to prepare the transaction
+      const transaction = await cancelOffer({
+        contract: marketContract,
+        offerId: BigInt(offerId),
+      });
+  
+      // Send the transaction
+      await sendTransaction({ transaction, account });
+  
+      console.log("Offer successfully canceled!");
+      // Add additional feedback for the user
+    } catch (error) {
+      console.error("Error during cancel offer:", error);
+      // Optionally display error message to the user
+    }
+  };
 
   const openNewPack = async (packId: number) => {
     const transaction = await openPack({
@@ -221,6 +355,54 @@ export default function Profile() {
     });
   };
 
+  const transferNFT = async (nft: NFT) => {
+    try {
+      if (!account) {
+        console.error("Account not found. Ensure the user is logged in.");
+        return;
+      }
+      if (!to) {
+        console.error("Recipient address is required.");
+        return;
+      }
+      // Transfer the NFT
+      const transaction = await transferFrom({
+        contract: cardsContract,
+        from: account.address,
+        to: to,
+        tokenId: BigInt(nft.id)
+      });
+      console.log("NFT transfer transaction initiated:", transaction);
+      await sendTransaction({
+        transaction,
+        account,
+      });
+      console.log("NFT successfully transferred to:", to);
+    } catch (error) {
+      console.error("Error during NFT transfer:", error);
+    }
+  };
+  const burnNFT = async (nft: NFT) => {
+    try {
+      if (!account) {
+        console.error("Account not found. Ensure the user is logged in.");
+        return;
+      }
+      // Burn the NFT
+      const transaction = await burn({
+        contract:cardsContract,
+        tokenId: BigInt(nft.id)
+      });
+      console.log("NFT burn transaction initiated:", transaction);
+      await sendTransaction({
+        transaction,
+        account,
+      });
+      console.log("NFT successfully burned:", nft.metadata.name);
+    } catch (error) {
+      console.error("Error during NFT burn:", error);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center">
@@ -229,17 +411,184 @@ export default function Profile() {
       <div className="flex space-x-4 mb-8">
         <button
           onClick={() => setActiveTab("NFTs")}
-          className={`px-4 py-2 rounded-lg ${activeTab === "NFTs" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"}`}
+          className={`px-4 py-2 rounded-lg ${
+            activeTab === "NFTs"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-200 text-gray-800"
+          }`}
         >
           NFTs
         </button>
         <button
           onClick={() => setActiveTab("Packs")}
-          className={`px-4 py-2 rounded-lg ${activeTab === "Packs" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"}`}
+          className={`px-4 py-2 rounded-lg ${
+            activeTab === "Packs"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-200 text-gray-800"
+          }`}
         >
           Packs
         </button>
+        <button
+          onClick={() => setActiveTab("offersReceived")}
+          className={`px-4 py-2 rounded-lg ${
+            activeTab === "offersReceived"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-200 text-gray-800"
+          }`}
+        >
+          Offers Received
+        </button>
+        <button
+          onClick={() => setActiveTab("offersMade")}
+          className={`px-4 py-2 rounded-lg ${
+            activeTab === "offersMade"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-200 text-gray-800"
+          }`}
+        >
+          Offers Made
+        </button>
       </div>
+
+      {activeTab === "offersReceived" && (
+        <div>
+          {isLoading ? (
+            <div>
+              <motion.div
+                className="flex justify-center items-center h-64"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  duration: 0.5,
+                  ease: "easeInOut",
+                  repeat: Infinity,
+                }}
+              >
+                <motion.div
+                  className="border-t-4 border-blue-500 rounded-full w-16 h-16"
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                />
+              </motion.div>
+              <h1 className="text-3xl font-bold mb-8 text-center">
+                Loading Lists ...
+              </h1>
+            </div>
+          ) : (
+            <div className="flex flex-col space-y-4">
+              {offersReceived.map((nft, index) => (
+                <motion.div
+                  key={index}
+                  className="flex items-center bg-white rounded-lg shadow-md p-4 w-full max-w-xl border border-gray-200"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <div className="w-24 h-32 flex-shrink-0">
+                    <img
+                      src={nft.asset.metadata.image}
+                      alt={nft.asset.metadata.name}
+                      className="object-cover w-full h-full rounded"
+                    />
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      {nft.asset?.metadata?.name}
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {nft.asset?.metadata?.description}
+                    </p>
+                    <p className="text-lg font-bold text-gray-800 mt-4">
+                      ${nft.currencyValue?.displayValue} USDC
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Expires in{" "}
+                      {Math.floor((Number(nft.endTimeInSeconds) * 1000 - Date.now()) / 86400000)} days
+                    </p>
+                  </div>
+                  <div className="ml-4">
+                    <button
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                      onClick={() => handleAcceptOffer(nft.id)}
+                    >
+                      Accept
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "offersMade" && (
+        <div>
+          {isLoading ? (
+            <div>
+              <motion.div
+                className="flex justify-center items-center h-64"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  duration: 0.5,
+                  ease: "easeInOut",
+                  repeat: Infinity,
+                }}
+              >
+                <motion.div
+                  className="border-t-4 border-blue-500 rounded-full w-16 h-16"
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                />
+              </motion.div>
+              <h1 className="text-3xl font-bold mb-8 text-center">
+                Loading Lists ...
+              </h1>
+            </div>
+          ) : (
+            <div className="flex flex-col space-y-4">
+              {nfts.map((nft, index) => (
+                <motion.div
+                  key={index}
+                  className="flex items-center bg-white rounded-lg shadow-md p-4 w-full max-w-xl border border-gray-200"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <div className="w-24 h-32 flex-shrink-0">
+                    <img
+                      src={nft.metadata.image}
+                      alt={nft.metadata.name}
+                      className="object-cover w-full h-full rounded"
+                    />
+                  </div>
+                  <div className="ml-4 flex-1">
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      {nft.metadata.name}
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {nft.metadata.description}
+                    </p>
+                    <p className="text-lg font-bold text-gray-800 mt-4">
+                      ${nft.offerPrice} USD
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Expires in {nft.expiryDays} days
+                    </p>
+                  </div>
+                  <div className="ml-4">
+                    <button
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                      // onClick={() => handleCancelOffer(nft.id)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {activeTab === "NFTs" && (
         <div>
@@ -249,7 +598,11 @@ export default function Profile() {
                 className="flex justify-center items-center h-64"
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, ease: "easeInOut", repeat: Infinity }}
+                transition={{
+                  duration: 0.5,
+                  ease: "easeInOut",
+                  repeat: Infinity,
+                }}
               >
                 <motion.div
                   className="border-t-4 border-blue-500 rounded-full w-16 h-16"
@@ -257,7 +610,9 @@ export default function Profile() {
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                 />
               </motion.div>
-              <h1 className="text-3xl font-bold mb-8 text-center">Loading Lists ...</h1>
+              <h1 className="text-3xl font-bold mb-8 text-center">
+                Loading Lists ...
+              </h1>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
@@ -270,10 +625,7 @@ export default function Profile() {
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
                   <div className="relative h-80 w-full">
-                  <img
-                  src={nft.metadata.image}
-                  alt={nft.metadata.name}
-                  />
+                    <img src={nft.metadata.image} alt={nft.metadata.name} />
                   </div>
                 </motion.div>
               ))}
@@ -299,8 +651,12 @@ export default function Profile() {
                   />
                 </div>
                 <div className="p-4 flex-grow flex flex-col justify-between">
-                  <h2 className="text-xl mb-2 text-black">{pack.metadata.name}</h2>
-                  <p className="text-gray-600 text-sm mb-2 h-10 overflow-y-auto">{pack.metadata.description}</p>
+                  <h2 className="text-xl mb-2 text-black">
+                    {pack.metadata.name}
+                  </h2>
+                  <p className="text-gray-600 text-sm mb-2 h-10 overflow-y-auto">
+                    {pack.metadata.description}
+                  </p>
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-gray-700">
                       Amount Owned: {pack.quantityOwned} / {pack.supply}
@@ -333,7 +689,9 @@ export default function Profile() {
               animate={{ scale: 1 }}
               exit={{ scale: 0.5 }}
             >
-              <h2 className="text-2xl font-bold mb-4">{selectedNft.metadata.name}</h2>
+              <h2 className="text-2xl font-bold mb-4">
+                {selectedNft.metadata.name}
+              </h2>
               <div className="relative mb-4">
                 <img
                   src={selectedNft.metadata.image}
@@ -343,7 +701,9 @@ export default function Profile() {
                   className="object-cover rounded-lg shadow-lg"
                 />
               </div>
-              <p className="text-gray-700 mb-4">{selectedNft.metadata.description}</p>
+              <p className="text-gray-700 mb-4">
+                {selectedNft.metadata.description}
+              </p>
               <ul className="text-sm text-gray-500">
                 {selectedNft.metadata.attributes.map((attribute, index) => (
                   <li key={index} className="flex justify-between">
@@ -352,10 +712,9 @@ export default function Profile() {
                   </li>
                 ))}
               </ul>
-              
 
               <input
-                style={{color:'black'}}
+                style={{ color: "black" }}
                 value={price}
                 onChange={handlePriceChange}
                 placeholder="Enter price"
@@ -366,6 +725,40 @@ export default function Profile() {
               >
                 List On Marketplace
               </button>
+
+
+              <button
+                onClick={() => handleCancelListing(selectedNft)}
+                className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+              >
+                Cancel Listing
+              </button>
+
+                    <input
+                      style={{ color: "black" }}
+                      value={to}
+                      onChange={handleTo}
+                      placeholder="Enter Wallet Address"
+                    />
+                    <button
+                      onClick={() =>  transferNFT(selectedNft)
+                      }
+                      className="px-4 py-2 text-sm font-semibold text-white bg-green-500 rounded-lg"
+                    >
+                      Transfer
+                    </button>
+
+
+                    {/* <button
+                      onClick={() => burnNFT(selectedNft)}
+                      className="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-lg"
+                    >
+                      Redeem
+                    </button> */}
+
+
+
+
               <button
                 onClick={handleClose}
                 className="mt-4 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
