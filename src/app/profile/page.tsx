@@ -6,15 +6,16 @@ import {
   CARD_CONTRACT_ADDRESS,
   PACK_CONTRACT_ADDRESS,
   MARKET_CONTRACT_ADDRESS,
+  USDC_CONTRACT_ADDRESS,
 } from "../const/addresses";
 import {
   defineChain,
   getContract,
   sendTransaction,
   sendAndConfirmTransaction,
+  createThirdwebClient,
 } from "thirdweb";
 import Image from "next/image";
-import { client } from "../client";
 import { motion, AnimatePresence } from "framer-motion";
 import { openPack } from "thirdweb/extensions/pack";
 import { useActiveAccount } from "thirdweb/react";
@@ -28,6 +29,7 @@ import { getOwnedNFTs as getOwnedERC721NFTs, burn, transferFrom } from "thirdweb
 import { getOwnedERC721s } from "../getOwnedERC721s"; // Path to the custom extension
 import { acceptOffer, createListing, getAllOffers, cancelListing, cancelOffer } from "thirdweb/extensions/marketplace";
 import { sepolia } from "thirdweb/chains";
+import { privateKeyToAccount } from "thirdweb/wallets";
 
 // Define a type for the NFT metadata structure
 type NFT = {
@@ -74,6 +76,11 @@ export default function Profile() {
     console.log(to);
   };
 
+  const client = createThirdwebClient({
+    clientId: '8bab9537dc62607b3a9f876b3a3ecac9',
+    secretKey: 'dBV9ptWxOcj6ovwXj8Ejj_L7qvNUQTyLUdABG_iVdFZURuvvyafG_j3eICT9JEwyXQG-Bh1FXOYGpcz7hD8yGg'
+  });  //base
+
   const cardsContract = getContract({
     address: CARD_CONTRACT_ADDRESS,
     chain,
@@ -109,7 +116,7 @@ export default function Profile() {
           const fetchedPacks = await getOwnedERC1155NFTs({
             contract: packsContract,
             start: 0,
-            count: 10,
+            count: 100,
             address: walletAddress,
           });
 
@@ -159,7 +166,7 @@ export default function Profile() {
   const directListing = async (nft: NFT) => {
     try {
       // Ensure the NFT is selected
-      setSelectedNft(nft);
+      // setSelectedNft(nft);
       console.log("Selected NFT:", nft);
       console.log("Token Id:", nft.id.toString());
 
@@ -180,12 +187,19 @@ export default function Profile() {
         );
         return;
       }
+      console.log("Account address :::", account)
 
       // Retrieve contract
       const contract = getContract({
         client, // Assuming you have a thirdweb client configured
         chain, // Replace with your blockchain chain ID
-        address: "0xCCaaD0C9C3c0E1218aa3344531aDAC318d9484aB", // Use NFT contract address or default
+        address: CARD_CONTRACT_ADDRESS, // Use NFT contract address or default
+      });
+
+      const marketcontract = getContract({
+        client, // Assuming you have a thirdweb client configured
+        chain, // Replace with your blockchain chain ID
+        address: MARKET_CONTRACT_ADDRESS, // Use NFT contract address or default
       });
 
       console.log("account :", account);
@@ -201,7 +215,7 @@ export default function Profile() {
       console.log("Account is approved");
 
       if (!isApproved) {
-        const transaction = setApprovalForAll({
+        const transaction = await setApprovalForAll({
           contract: cardsContract,
           operator: MARKET_CONTRACT_ADDRESS,
           approved: true,
@@ -217,13 +231,18 @@ export default function Profile() {
         );
       }
 
+      // Set the expiry time to 1 minute from the current time
+      const expiryTime = new Date();
+      expiryTime.setMinutes(expiryTime.getMinutes() + 1); // Add 1 minute to the current time
+
+
       // Create a listing
       const transaction = await createListing({
-        contract, // Pass the contract object
-        assetContractAddress: "0xCe333e323fBF82D2173813002741050dfCE09005", // NFT contract address
-        tokenId: BigInt(nft.id), // Use NFT's token ID or default
+        contract:marketcontract, // Pass the contract object
+        assetContractAddress: CARD_CONTRACT_ADDRESS, // NFT contract address
+        tokenId: BigInt(231), // Use NFT's token ID or default
         pricePerToken: price, // Fixed price for now
-        currencyContractAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+        currencyContractAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
       });
 
       console.log("Transaction created:", transaction);
@@ -238,6 +257,81 @@ export default function Profile() {
       console.error("Error in directListing:", error);
     }
   };
+
+  const directListingPack = async () => {
+    try {
+      // Ensure the NFT is selected
+
+      // if (nfts.length === 0) {
+      //   console.error("No NFT provided for listing.");
+      //   return;
+      // }
+
+      // const nft = nfts[0]; // Get the first NFT
+      // setSelectedNft(nft);
+      // console.log("Selected NFT:", nft);
+      // console.log("Token NFT:", nft.id);
+
+      // Ensure account is defined
+
+      const account = privateKeyToAccount({
+        client,
+        privateKey: "0x3e97b417774a9b4f356249be285afd4f2be6854932acd43ef31621d80f2055ec",
+      });
+      
+      if (!account) {
+        console.error(
+          "Account is undefined. Please ensure the user is logged in."
+        );
+        return;
+      }
+
+      // Retrieve contract
+      const contract = getContract({
+        client, // Assuming you have a thirdweb client configured
+        chain, // Replace with your blockchain chain ID
+        address: PACK_CONTRACT_ADDRESS, // Use NFT contract address or default
+      });
+
+      const marketcontract = getContract({
+        client, // Assuming you have a thirdweb client configured
+        chain, // Replace with your blockchain chain ID
+        address: MARKET_CONTRACT_ADDRESS, // Use NFT contract address or default
+      });
+
+
+      console.log("account :", account);
+
+
+      // Set the expiry time to 1 minute from the current time
+      const expiryTime = new Date();
+      expiryTime.setMinutes(expiryTime.getMinutes() + 1); // Add 1 minute to the current time
+
+
+      // Create a listing
+      const transaction = await createListing({
+        contract: marketcontract, // Pass the contract object
+        assetContractAddress: PACK_CONTRACT_ADDRESS, // NFT contract address
+        tokenId: BigInt(35), // Use NFT's token ID or default
+        pricePerToken: "0.03", // Fixed price for now
+        currencyContractAddress: USDC_CONTRACT_ADDRESS,
+        endTimestamp: new Date(Date.now() + 1000 * 60 * 60* 48),
+        quantity: 5n
+      });
+
+      console.log("Transaction created:", transaction);
+      // Send transaction
+      await sendTransaction({
+        transaction,
+        account, // Ensure account is defined
+      });
+
+      console.log("Transaction sent successfully.");
+    } catch (error) {
+      console.error("Error in directListing:", error);
+    }
+  };
+
   const handleAcceptOffer = async (offerId: number) => {
     console.log("inside accept offer")
     try{
@@ -337,6 +431,7 @@ export default function Profile() {
   };
 
   const openNewPack = async (packId: number) => {
+    console.log("Open Pack Proccess starteed --------->")
     const transaction = await openPack({
       contract: packsContract,
       packId: BigInt(packId),
@@ -349,10 +444,25 @@ export default function Profile() {
       return;
     }
 
-    await sendTransaction({
-      transaction,
-      account: account,
-    });
+    console.log("Account Address ::: ", account.address);
+
+
+    try {
+      const transactionResult = await sendTransaction({
+        transaction: transaction,
+        account: account,
+        gasless:{
+          provider: "engine",
+          relayerUrl: "https://a54f42fd.engine-usw2.thirdweb.com/relayer/15ffa953-f35d-4236-b012-254bd9d783b7",
+          relayerForwarderAddress: "0xD61d850DF67e14806CDa2736778D7bE1188f8c6d",
+         }
+      });
+
+      console.log("Open Pack Proccess starteed --------->",transactionResult)
+    } catch (e) {
+      console.log(e)
+    }
+   
   };
 
   const transferNFT = async (nft: NFT) => {
@@ -501,6 +611,7 @@ export default function Profile() {
                     <p className="text-lg font-bold text-gray-800 mt-4">
                       ${nft.currencyValue?.displayValue} USDC
                     </p>
+                
                     <p className="text-sm text-gray-500">
                       Expires in{" "}
                       {Math.floor((Number(nft.endTimeInSeconds) * 1000 - Date.now()) / 86400000)} days
@@ -668,6 +779,13 @@ export default function Profile() {
                   >
                     Open Pack
                   </button>
+
+                  <button
+                onClick={() => directListingPack()}
+                className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+              >
+                List On Marketplace
+              </button>
                 </div>
               </motion.div>
             ))}

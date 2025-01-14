@@ -67,6 +67,10 @@ export default function Navbar() {
                 className: "",
               }}
               chain={baseSepolia}
+              accountAbstraction={{
+                chain: baseSepolia,
+                sponsorGas: true,
+              }}
               
             />
           </div>

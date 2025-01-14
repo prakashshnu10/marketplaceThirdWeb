@@ -31,7 +31,7 @@ const main = async () => {
     // const PACK_CONTRACT_ADDRESS = "0x56e21565Be6A6F0493626110a55f52cDd1f710E2";  //mainone
 
     const EDITION_CONTRACT_ADDRESS = "0xfe9991f31De23F95d58d40309BaE42D47e9C6c7a"; //base
-    const PACK_CONTRACT_ADDRESS = "0x5D8224f9aE96d81ef18c811627c67d0139f1E7ed";
+    const PACK_CONTRACT_ADDRESS = "0xF098D7F6BCfA54dac627773c65637941c6ABeEd1";
 
 
 
@@ -95,11 +95,11 @@ const main = async () => {
       recipient: account.address,
       tokenOwner: account.address,
       packMetadata: {
-        "collection_name": "Gold Rush Packs #5",
-        "name": "Gold Rush Packs #5",
-        "description": "Timeless classics meet modern masterpieces.",
-        "title": "Gold Rush Packs #5",
-        "sub_description": " Iconic slabs for every collector.",
+        "collection_name": "Testing1 Slab Series #1 - QA",
+        "name": "Testing1 Slab Series #1 - QA",
+        "description": "Testing rare slabs and iconic cards.",
+        "title": "Legendary Slab Series #1 - QA",
+        "sub_description": "Chase rookies, vintage, and premium hits. ",
         "image": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/7368e4e7f83d1b7f502d704c9b821b68.png",
         "video": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/PackLoop_1080p_3Mbps.mp4",
         "external_url": "https://tradible.io/slab-drops/drop#3",
@@ -107,60 +107,46 @@ const main = async () => {
         "end_date": "",
         "price": "50",
         "currency": "USD",
-        "number_of_items": "10",
+        "number_of_items": "5",
         "drop_contract_address": "",
         "status": "",
         "drop_details": "This premium drop is for those grail-hunting collectors looking to add some legendary heat to their collections. Buyback offers are activated for this drop. That means that every card from this drop will receive a 70% FMV offer shortly after reveal. Shortly after the drop, you can rip and reveal your pack to see what you got. To hodl, trade, or redeem from the vault. It's all on-chain to prove 100% fairness and randomness in distribution.",
         "assets": [
           {
-            "token_id": "96",
+            "token_id": "205",
             "type": "Legendary",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
+            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png",
+            "Grader": "PSA",
+            "Grade": "10 GEM MINT"
           },
           {
-            "token_id": "97",
-            "type": "Rare",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
-          },
-          {
-            "token_id": "98",
+            "token_id": "206",
             "type": "Common",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
+            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png",
+            "Grader": "PSA",
+            "Grade": "10 GEM MINT"
           },
           {
-            "token_id": "99",
-            "type": "Epic",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
-          },
-          {
-            "token_id": "100",
-            "type": "Uncommon",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
-          },
-          {
-            "token_id": "101",
-            "type": "Legendary",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
-          },
-          {
-            "token_id": "102",
+            "token_id": "207",
             "type": "Rare",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
+            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png",
+            "Grader": "PSA",
+            "Grade": "10 GEM MINT"
           },
           {
-            "token_id": "103",
-            "type": "Common",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
-          },
-          {
-            "token_id": "104",
-            "type": "Epic",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
-          },
-          {
-            "token_id": "105",
+            "token_id": "208",
             "type": "Uncommon",
-            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png"
+            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png",
+            "Grader": "PSA",
+            "Grade": "10 GEM MINT"
+          },
+          ,
+          {
+            "token_id": "209",
+            "type": "Epic",
+            "url": "https://tradible-dev-media.s3.us-east-1.amazonaws.com/image.png",
+            "Grader": "PSA",
+            "Grade": "10 GEM MINT"
           }
         ]
       },
@@ -171,67 +157,14 @@ const main = async () => {
       erc721Rewards: [
         {
           contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(96),
+          tokenId: BigInt(203),
           quantityPerReward: 1,
           totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(97),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(98),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(99),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(100),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(101),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(102),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(103),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(104),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
-        {
-          contractAddress: EDITION_CONTRACT_ADDRESS,
-          tokenId: BigInt(105),
-          quantityPerReward: 1,
-          totalRewards: 1,
-        },
+        }
       ],
 
       amountDistributedPerOpen: BigInt(1),
+      
     });
 
     const dataPack = await sendAndConfirmTransaction({
